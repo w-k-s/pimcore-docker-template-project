@@ -1,0 +1,46 @@
+version: '3.7'
+services:
+  # https://medium.com/@ger86/how-to-integrate-docker-into-a-symfony-based-project-f06164dc7944
+  # https://knplabs.com/en/blog/how-to-dockerise-a-symfony-4-project
+  # https://dev.to/martinpham/symfony-5-development-with-docker-4hj8
+  nginx: 
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    volumes:
+      - ./pimcore:/var/www/pimcore/
+    ports:
+      - 8081:80
+    depends_on:
+      - pimcore
+    networks:
+      - backend 
+
+
+  pimcore:
+    build:
+      context: ./pimcore
+      dockerfile: Dockerfile
+    volumes: 
+      - './pimcore:/usr/src/app'
+      - './docker-infra/composer/cache:/.composer/cache'
+    restart: on-failure
+    ports:
+      - 9000:9000
+    user: 1000:1000
+    networks:
+      - backend 
+
+  mysql: 
+    image: mysql:8.0
+    restart: on-failure
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: example
+    volumes:
+      - ./docker-infra/mysql:/var/lib/mysql
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+
+networks:
+  backend:
+    driver: bridge
