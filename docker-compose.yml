@@ -24,22 +24,34 @@ services:
     volumes: 
       - './pimcore:/usr/src/app'
       - './docker-infra/composer/cache:/.composer/cache'
+      - './docker-infra/pimcore/logs:/var/installer/logs'
+    environment:
+      DB_USER: root
+      DB_PASSWORD: pimcorePassword
+      DB_NAME: pimcore
+      DB_HOST: mysql
+      DB_PORT: 3306
+      PIMCORE_INSTALL_ADMIN_USERNAME: admin
+      PIMCORE_INSTALL_ADMIN_PASSWORD: pimcore
     restart: on-failure
-    ports:
-      - 9000:9000
+    # Docker uses a user with id 1000. Using this id avoids permission issues
     user: 1000:1000
     networks:
       - backend 
+    depends_on:
+      - mysql
 
   mysql: 
     image: mysql:8.0
     restart: on-failure
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: example
+      MYSQL_ROOT_PASSWORD: pimcorePassword
+      MYSQL_DATABASE: pimcore
     volumes:
       - ./docker-infra/mysql:/var/lib/mysql
     command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    networks:
+      - backend
 
 networks:
   backend:
