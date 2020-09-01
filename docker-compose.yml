@@ -53,5 +53,6 @@ services:
       - backend
 
 networks:
+  # Using this network fixes an issue with composer (Requested address can not be assigned)
   backend:
     driver: bridge

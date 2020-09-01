@@ -3,16 +3,16 @@
 This is a template project consisting of PimCore's `demo-ecommerce` project built to run in a docker container.
 The project can be used to go through the Pimcore tutorial found [here](https://pimcore.com/docs/6.x/Development_Documentation).
 
-## To run this project
+## To run this project
 
 ### Prerequisites:
-- Docker (with Container memory allocated to at least 8GB)
+- Docker (with Container memory allocated to at least 6GB)
 - Docker-Compose v3.7
 
 ### Steps
 
 **Note**: This configuration is WIP. It currently does **NOT** work.
-- Run the following command in Termal. The first time you run this command, it will take a **VERY** long time.
+- Run the following command in Terminal. The first time you run this command, it will take a **VERY** long time.
 
 ```sh 
 docker-compose up
@@ -27,7 +27,7 @@ Pimcore offers 2 example packages, described in their [getting started](https://
 
 The following steps explain how you could use a different package in this project:
 
-## Steps
+### Steps
 
 **Install Composer**
 If you have composer installed, you can skip this section.
@@ -91,7 +91,7 @@ The instructions for this section are for OS X and were retrieved from [this](ht
 
   For instance if you'd like to to install the skeleton project, 
 
-  ``` sh
+  ```sh
   COMPOSER_MEMORY_LIMIT=-1 composer create-project pimcore/skeleton pimcore
   ```
 
@@ -106,8 +106,8 @@ The instructions for this section are for OS X and were retrieved from [this](ht
   ENV DB_HOST=
   ENV DB_PORT=3306
   ENV DB_NAME=
-  ENV ADMIN_USERNAME=admin
-  ENV ADMIN_PASSWORD=pimcore
+  ENV PIMCORE_INSTALL_ADMIN_USERNAME=admin
+  ENV PIMCORE_INSTALL_ADMIN_PASSWORD=password
 
   # Required apcu zip extension
   RUN pecl install apcu
@@ -147,10 +147,6 @@ The instructions for this section are for OS X and were retrieved from [this](ht
         xsl \
         zip \
         sockets
-  # already installed:
-  #      iconv \
-  #      mbstring \
-
 
   # Copy Composer from Composer Official Image
   COPY --from=composer /usr/bin/composer /usr/bin/composer
@@ -163,11 +159,18 @@ The instructions for this section are for OS X and were retrieved from [this](ht
   # Install Depdencies via Composer
   RUN COMPOSER_MEMORY_LIMIT=-1 composer install -v 
 
-  RUN ./wait-for-it.sh $(echo "$DB_HOST:$DB_PORT")
-
   RUN PATH=$PATH:/usr/src/app/vendor/bin:bin
 
-  CMD ./vendor/bin/pimcore-install --admin-username $ADMIN_USERNAME --admin-password $ADMIN_PASSWORD
+  # ./vendor/bin/pimcore-install needs hella memory
+  RUN  echo 'memory_limit = 1024M' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini;
+
+  # Set php-fpm's project root directory (https://www.php.net/manual/en/install.fpm.configuration.php, https://serverfault.com/a/344550)
+  RUN  echo 'chroot = /usr/src/app' >> /usr/local/etc/php-fpm.d/docker-php-fpm-chroot.conf;
+
+  # Set php-fpm's project working directory (https://www.php.net/manual/en/install.fpm.configuration.php, https://serverfault.com/a/344550)
+  RUN  echo 'chdir = /usr/src/app/web' >> /usr/local/etc/php-fpm.d/docker-php-fpm-chdir.conf;
+
+  ENTRYPOINT ["./entrypoint.sh"]
 
   EXPOSE 9000
   ```
@@ -175,7 +178,7 @@ The instructions for this section are for OS X and were retrieved from [this](ht
 4. Create a file named `${PROJECT_ROOT}/pimcore/app/config/installer.yml` and copy the following contents into the file:
 
   _`${PROJECT_ROOT}/pimcore/app/config/installer.yml`_
-  ```
+  ```yml
   pimcore_install:
       parameters:
           database_credentials:
@@ -191,3 +194,20 @@ The instructions for this section are for OS X and were retrieved from [this](ht
   ```sh
   cp wait-for-it.sh pimcore/
   ```
+
+6. Create a file named `${PROJECT_ROOT}/pimcore/entrypoint.sh` and copy the following contents into the file:
+
+  _`${PROJECT_ROOT}/pimcore/entrypoint.sh`_
+  ```sh
+  #!/usr/bin/env bash
+
+  echo "Waiting for Database Connection";
+  ./wait-for-it.sh $(echo "$DB_HOST:$DB_PORT") -- ./vendor/bin/pimcore-install --ignore-existing-config --verbose;
+
+  echo "Starting php-fpm";
+  php-fpm -F
+  ```
+
+### Useful Resources
+
+1. [Symfony 5 Development with Docker](https://dev.to/martinpham/symfony-5-development-with-docker-4hj8)

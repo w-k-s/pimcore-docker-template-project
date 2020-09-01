@@ -46,10 +46,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -q \
       xsl \
       zip \
       sockets
-# already installed:
-#      iconv \
-#      mbstring \
-
 
 # Copy Composer from Composer Official Image
 COPY --from=composer /usr/bin/composer /usr/bin/composer
@@ -64,6 +60,7 @@ RUN COMPOSER_MEMORY_LIMIT=-1 composer install -v
 
 RUN PATH=$PATH:/usr/src/app/vendor/bin:bin
 
+# ./vendor/bin/pimcore-install needs hella memory
 RUN  echo 'memory_limit = 1024M' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini;
 
 ENTRYPOINT ["./entrypoint.sh"]
