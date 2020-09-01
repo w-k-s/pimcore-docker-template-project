@@ -64,6 +64,8 @@ RUN COMPOSER_MEMORY_LIMIT=-1 composer install -v
 
 RUN PATH=$PATH:/usr/src/app/vendor/bin:bin
 
-CMD ./wait-for-it.sh $(echo "$DB_HOST:$DB_PORT") -- ./vendor/bin/pimcore-install --ignore-existing-config --verbose
+RUN  echo 'memory_limit = 1024M' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini;
+
+ENTRYPOINT ["./entrypoint.sh"]
 
 EXPOSE 9000

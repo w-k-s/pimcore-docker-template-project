@@ -16,7 +16,6 @@ services:
     networks:
       - backend 
 
-
   pimcore:
     build:
       context: ./pimcore
